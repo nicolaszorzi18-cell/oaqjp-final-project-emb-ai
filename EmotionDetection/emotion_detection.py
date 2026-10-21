@@ -2,17 +2,36 @@ import requests
 import json
 
 def emotion_detector(text_to_analyze):
+    # Verificamos si el texto está vacío o en blanco
+    if not text_to_analyze or text_to_analyze.strip() == "":
+        return {
+            'anger': None,
+            'disgust': None,
+            'fear': None,
+            'joy': None,
+            'sadness': None,
+            'dominant_emotion': None
+        }
+
     url = 'https://sn-watson-emotion.labs.skills.network/v1/watson.runtime.nlp.v1/NlpService/EmotionPredict'
-    headers = {"grpc-metadata-mm-model-id": "emotion_aggregated-workflow_lang_en_stock"}
+    header = {"grpc-metadata-mm-model-id": "emotion_aggregated-workflow_lang_en_stock"}
     input_json = { "raw_document": { "text": text_to_analyze } }
     
-    # Realizamos la petición POST
-    response = requests.post(url, json=input_json, headers=headers)
+    response = requests.post(url, json=input_json, headers=header)
     
-    # 1 y 2. Convertimos el texto de respuesta en un diccionario usando la biblioteca json
+    # Manejo de error si el servidor responde con status_code 400 (Bad Request)
+    if response.status_code == 400:
+        return {
+            'anger': None,
+            'disgust': None,
+            'fear': None,
+            'joy': None,
+            'sadness': None,
+            'dominant_emotion': None
+        }
+        
     formatted_response = json.loads(response.text)
     
-    # 3. Extraemos el conjunto requerido de emociones y sus puntajes
     emotions = formatted_response['emotionPredictions'][0]['emotion']
     anger_score = emotions['anger']
     disgust_score = emotions['disgust']
@@ -20,7 +39,6 @@ def emotion_detector(text_to_analyze):
     joy_score = emotions['joy']
     sadness_score = emotions['sadness']
     
-    # 4. Escribimos la lógica para encontrar la emoción dominante (la de mayor puntaje)
     emotion_scores = {
         'anger': anger_score,
         'disgust': disgust_score,
@@ -28,9 +46,9 @@ def emotion_detector(text_to_analyze):
         'joy': joy_score,
         'sadness': sadness_score
     }
+    
     dominant_emotion = max(emotion_scores, key=emotion_scores.get)
     
-    # 5. Modificamos la función para devolver el diccionario con el formato requerido
     return {
         'anger': anger_score,
         'disgust': disgust_score,
